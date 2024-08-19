@@ -1,5 +1,5 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { TUser, RequestStatus, TRegisterData, TLoginData } from '@utils-types';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { TUser, TRegisterData, TLoginData } from '@utils-types';
 import {
   registerUserApi,
   loginUserApi,
@@ -14,47 +14,60 @@ type TUserState = {
   isLoading: boolean;
   isAuthChecked: boolean;
   error: string | null;
-  requestStatus: RequestStatus;
 };
 
 const initialState: TUserState = {
   user: null,
   isLoading: true,
   isAuthChecked: false,
-  error: null,
-  requestStatus: RequestStatus.Idle
+  error: null
+};
+
+const setAuthTokens = (accessToken: string, refreshToken: string) => {
+  setCookie('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
+};
+
+const clearAuthTokens = () => {
+  deleteCookie('accessToken');
+  localStorage.removeItem('refreshToken');
+};
+
+const handleError = (error: unknown, defaultMessage: string) => {
+  if (error instanceof Error) {
+    return error.message || defaultMessage;
+  } else if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error
+  ) {
+    return (error as any).response?.data?.message || defaultMessage;
+  } else {
+    return defaultMessage;
+  }
 };
 
 export const registerUser = createAsyncThunk(
-  'user/register',
-  async (data: TRegisterData, { rejectWithValue }) => {
+  'user/registerUser',
+  async (registerData: TRegisterData, { rejectWithValue }) => {
     try {
-      const response = await registerUserApi(data);
-      const { accessToken, refreshToken, user } = response;
-      setCookie('accessToken', accessToken.split('Bearer ')[1], {
-        expires: 3600
-      });
-      localStorage.setItem('refreshToken', refreshToken);
-      return user;
-    } catch (err) {
-      return rejectWithValue(err);
+      const data = await registerUserApi(registerData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(handleError(error, 'Ошибка при регистрации'));
     }
   }
 );
 
 export const loginUser = createAsyncThunk(
-  'user/login',
-  async (data: TLoginData, { rejectWithValue }) => {
+  'user/loginUser',
+  async (loginData: TLoginData, { rejectWithValue }) => {
     try {
-      const response = await loginUserApi(data);
-      const { accessToken, refreshToken, user } = response;
-      setCookie('accessToken', accessToken.split('Bearer ')[1], {
-        expires: 3600
-      });
-      localStorage.setItem('refreshToken', refreshToken);
-      return user;
-    } catch (err) {
-      return rejectWithValue(err);
+      const data = await loginUserApi(loginData);
+      setAuthTokens(data.accessToken, data.refreshToken);
+      return data;
+    } catch (error) {
+      return rejectWithValue(handleError(error, 'Ошибка при авторизации'));
     }
   }
 );
@@ -63,10 +76,12 @@ export const getUser = createAsyncThunk(
   'user/get',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await getUserApi();
-      return response.user;
-    } catch (err) {
-      return rejectWithValue(err);
+      const data = await getUserApi();
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        handleError(error, 'Ошибка при получении данных пользователя')
+      );
     }
   }
 );
@@ -75,10 +90,12 @@ export const updateUser = createAsyncThunk(
   'user/update',
   async (user: TRegisterData, { rejectWithValue }) => {
     try {
-      const response = await updateUserApi(user);
-      return response.user;
-    } catch (err) {
-      return rejectWithValue(err);
+      const data = await updateUserApi(user);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        handleError(error, 'Ошибка при обновлении данных пользователя')
+      );
     }
   }
 );
@@ -88,11 +105,11 @@ export const logout = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await logoutApi();
-      deleteCookie('accessToken');
-      localStorage.removeItem('refreshToken');
-      return null;
-    } catch (err) {
-      return rejectWithValue(err);
+      clearAuthTokens();
+    } catch (error) {
+      return rejectWithValue(
+        handleError(error, 'Ошибка при выходе из системы')
+      );
     }
   }
 );
@@ -101,91 +118,75 @@ export const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    init(state) {
-      state.isAuthChecked = true;
+    logoutUser: (state) => {
+      state.user = null;
+      state.isAuthChecked = false;
+      state.isLoading = false;
+      state.error = null;
+      clearAuthTokens();
     }
   },
   extraReducers: (builder) => {
     builder
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.isAuthChecked = true;
+        state.isLoading = false;
         state.error = null;
       })
-      .addCase(
-        registerUser.fulfilled,
-        (state, action: PayloadAction<TUser>) => {
-          state.isLoading = false;
-          state.user = action.payload;
-          state.error = null;
-          state.requestStatus = RequestStatus.Success;
-        }
-      )
       .addCase(registerUser.rejected, (state, action) => {
+        state.isAuthChecked = false;
         state.isLoading = false;
         state.error = action.payload as string;
-        state.requestStatus = RequestStatus.Failed;
       })
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<TUser>) => {
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.isAuthChecked = true;
         state.isLoading = false;
-        state.user = action.payload;
         state.error = null;
-        state.requestStatus = RequestStatus.Success;
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.isAuthChecked = true;
         state.isLoading = false;
         state.error = action.payload as string;
-        state.requestStatus = RequestStatus.Failed;
       })
       .addCase(getUser.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
       })
-      .addCase(getUser.fulfilled, (state, action: PayloadAction<TUser>) => {
+      .addCase(getUser.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.isAuthChecked = true;
         state.isLoading = false;
-        state.user = action.payload;
         state.error = null;
-        state.requestStatus = RequestStatus.Success;
       })
       .addCase(getUser.rejected, (state, action) => {
+        state.isAuthChecked = true;
         state.isLoading = false;
         state.error = action.payload as string;
-        state.requestStatus = RequestStatus.Failed;
-      })
-      .addCase(updateUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(updateUser.fulfilled, (state, action: PayloadAction<TUser>) => {
-        state.isLoading = false;
-        state.user = action.payload;
-        state.error = null;
-        state.requestStatus = RequestStatus.Success;
-      })
-      .addCase(updateUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-        state.requestStatus = RequestStatus.Failed;
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
+        state.isAuthChecked = false;
         state.isLoading = false;
         state.error = null;
-        state.requestStatus = RequestStatus.Idle;
       });
   }
 });
 
-export const { init } = userSlice.actions;
+export const { logoutUser } = userSlice.actions;
 
 export const userSelectors = {
   selectUser: (state: { user: TUserState }) => state.user.user,
   selectIsAuthChecked: (state: { user: TUserState }) =>
     state.user.isAuthChecked,
-  selectRequestStatus: (state: { user: TUserState }) => state.user.requestStatus
+  isLoadingSelector: (state: { user: TUserState }) => state.user.isLoading,
+  errorSelector: (state: { user: TUserState }) => state.user.error
 };
 
 export const userSliceReducer = userSlice.reducer;

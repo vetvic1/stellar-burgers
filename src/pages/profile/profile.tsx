@@ -5,13 +5,12 @@ import { updateUser, userSelectors } from '../../services/slices/userSlice';
 
 export const Profile: FC = () => {
   const user = useSelector(userSelectors.selectUser);
+  const dispatch = useDispatch();
   const [formValue, setFormValue] = useState({
     name: user?.name || '',
     email: user?.email || '',
     password: ''
   });
-
-  const dispatch = useDispatch();
 
   useEffect(() => {
     setFormValue((prevState) => ({

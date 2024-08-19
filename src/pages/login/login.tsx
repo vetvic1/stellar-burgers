@@ -8,14 +8,12 @@ export const Login: FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     setError(null);
-
     const resultAction = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(resultAction)) {
       navigate('/');

@@ -119,11 +119,11 @@ export const App = () => {
           <Route
             path='/profile/orders/:number'
             element={
-              <Modal title='' onClose={closeModal}>
-                <ProtectedRoute>
+              <ProtectedRoute>
+                <Modal title='' onClose={closeModal}>
                   <OrderInfo />
-                </ProtectedRoute>
-              </Modal>
+                </Modal>
+              </ProtectedRoute>
             }
           />
         </Routes>
