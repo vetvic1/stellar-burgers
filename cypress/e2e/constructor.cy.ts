@@ -1,9 +1,12 @@
 /// <reference types="cypress" />
+
+const burgerConstructor = '[data-cy=burger-constructor]';
+
 describe('Страница конструктора бургера', () => {
   beforeEach(() => {
     cy.intercept('GET', 'api/ingredients', { fixture: 'ingredients.json' });
     cy.viewport(1300, 800);
-    cy.visit('http://localhost:4000');
+    cy.visit('/');
   });
 
   it('Добавление ингредиентов', () => {
@@ -28,7 +31,7 @@ describe('Открытие и закрытие модального окна с 
   beforeEach(() => {
     cy.intercept('GET', 'api/ingredients', { fixture: 'ingredients.json' });
     cy.viewport(1300, 800);
-    cy.visit('http://localhost:4000');
+    cy.visit('/');
   });
 
   it('Открытие модального окна с отображением элемента, по которому произошел клик', () => {
@@ -67,7 +70,7 @@ describe('Создание заказа', () => {
     );
     cy.setCookie('accessToken', 'test-accessToken');
     cy.viewport(1300, 800);
-    cy.visit('http://localhost:4000');
+    cy.visit('/');
   });
 
   afterEach(() => {
@@ -87,14 +90,8 @@ describe('Создание заказа', () => {
     cy.get('[data-cy=close-modal]').click();
     cy.get('[data-cy=order-number]').should('not.exist');
 
-    cy.get('[data-cy=burger-constructor]')
-      .contains('Булка1')
-      .should('not.exist');
-    cy.get('[data-cy=burger-constructor]')
-      .contains('Начинка1')
-      .should('not.exist');
-    cy.get('[data-cy=burger-constructor]')
-      .contains('Соус1')
-      .should('not.exist');
+    cy.get(burgerConstructor).contains('Булка1').should('not.exist');
+    cy.get(burgerConstructor).contains('Начинка1').should('not.exist');
+    cy.get(burgerConstructor).contains('Соус1').should('not.exist');
   });
 });
