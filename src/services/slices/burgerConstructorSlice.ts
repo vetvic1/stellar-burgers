@@ -1,22 +1,21 @@
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
-  TIngredient,
   TConstructorIngredient,
   TOrder,
   RequestStatus
-} from '@utils-types';
+} from '../../utils/types';
 import { v4 as uuidv4 } from 'uuid';
 import { orderBurgerApi } from '../../utils/burger-api';
 
-type TBurgerConstructorState = {
+export interface TBurgerConstructorState {
   bun: TConstructorIngredient | null;
   ingredients: TConstructorIngredient[];
   order: TOrder | null;
   error: string | null;
   requestStatus: RequestStatus;
-};
+}
 
-const initialState: TBurgerConstructorState = {
+export const initialState: TBurgerConstructorState = {
   bun: null,
   ingredients: [],
   order: null,

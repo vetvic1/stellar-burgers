@@ -6,7 +6,7 @@ import { useSelector } from '../../services/store';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getOrderByNumberApi } from '@api';
-import { selectIngridients } from '../../services/slices/ingredientsSlice';
+import { selectingredients } from '../../services/slices/ingredientsSlice';
 
 export const OrderInfo: FC = () => {
   const [orderData, setOrderData] = useState<TOrder>({
@@ -20,7 +20,7 @@ export const OrderInfo: FC = () => {
   });
 
   const id = Number(useParams().number);
-  const ingredients: TIngredient[] = useSelector(selectIngridients);
+  const ingredients: TIngredient[] = useSelector(selectingredients);
 
   /* Готовим данные для отображения */
   const orderInfo = useMemo(() => {
